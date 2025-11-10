@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('files/v1.4.16.16_int-ant/minidriver-20820A1-uart-patchram.hex', 'files/v1.4.16.16_int-ant/')]
+datas = [('files/if820/', 'files/if820/minidriver-20820A1-uart-patchram.hex')]
 binaries = []
 hiddenimports = []
 tmp_ret = collect_all('pyocd')
@@ -11,7 +11,7 @@ datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
 
 a = Analysis(
-    ['if820_flasher_cli.py'],
+    ['ifx_flasher_cli.py'],
     pathex=['common_lib/libraries'],
     binaries=binaries,
     datas=datas,
@@ -31,7 +31,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='if820_flasher_cli',
+    name='ifx_flasher_cli',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
