@@ -15,11 +15,12 @@ import textwrap
 import os
 import sys
 sys.path.append('./common_lib/libraries')
-from If820Board import If820Board
+from ifx_board import IfxBoard
 from HciProgrammer import HciProgrammer
+from If820Board import IF820_FW_CFG
 
 LOG_MODULE_HCI_PORT = 'hci_port'
-VERSION = '2.0.0'
+VERSION = '1.0.0'
 
 
 def resource_path(relative_path):
@@ -27,6 +28,14 @@ def resource_path(relative_path):
     base_path = getattr(sys, '_MEIPASS', os.path.dirname(
         os.path.abspath(__file__)))
     return os.path.join(base_path, relative_path)
+
+
+SUPPORTED_BOARDS = {
+    'if820': {
+        'minidriver': resource_path(f'files{os.sep}if820{os.sep}minidriver-20820A1-uart-patchram.hex'),
+        'fw_cfg': IF820_FW_CFG
+    }
+}
 
 
 if __name__ == '__main__':
@@ -38,6 +47,9 @@ if __name__ == '__main__':
         If there is more than one board detected, the user will be prompted to select the board to flash.
         The CLI supports chip erase, firmware update, and flashing firmware with chip erase.
                                         '''))
+    parser.add_argument('-b', '--board',
+                        type=str, default=str(), required=True,
+                        help=f"Board type to flash. Supported boards: {', '.join(SUPPORTED_BOARDS)}")
     parser.add_argument('-c', '--connection',
                         type=str, default=str(), help="HCI COM port")
     parser.add_argument('-ce', '--chip_erase', action='store_true',
@@ -62,8 +74,14 @@ if __name__ == '__main__':
 
     print(f"IFX Flasher CLI v{VERSION}")
 
-    mini_driver = resource_path(
-        f'files{os.sep}if820{os.sep}minidriver-20820A1-uart-patchram.hex')
+    board = args.board.casefold()
+    if board not in SUPPORTED_BOARDS:
+        logging.error(
+            f"Unsupported board type '{board}'. Supported boards: {', '.join(SUPPORTED_BOARDS.keys())}")
+        exit(1)
+
+    mini_driver = SUPPORTED_BOARDS[board]['minidriver']
+    fw_cfg = SUPPORTED_BOARDS[board]['fw_cfg']
     com_port = args.connection
     firmware = args.file
     chip_erase = args.chip_erase
@@ -72,13 +90,13 @@ if __name__ == '__main__':
     if com_port:
         input("Ensure the board is in HCI download mode and press enter to continue...")
         p = HciProgrammer(mini_driver, com_port,
-                          HciProgrammer.HCI_DEFAULT_BAUDRATE, chip_erase)
+                          HciProgrammer.HCI_DEFAULT_BAUDRATE, chip_erase, fw_cfg)
         if args.debug:
             logging.getLogger(LOG_MODULE_HCI_PORT).setLevel(logging.DEBUG)
         p.program_firmware(
-            HciProgrammer.HCI_FLASH_FIRMWARE_BAUDRATE, firmware, chip_erase)
+            fw_cfg.hci_flash_baudrate, firmware, chip_erase)
     else:
-        boards = If820Board.get_connected_boards()
+        boards = IfxBoard.get_connected_boards()
         if len(boards) == 0:
             logging.error("No boards found")
             exit(1)
@@ -90,4 +108,5 @@ if __name__ == '__main__':
                 print(f"{i}: {board.probe.id}")
             choice = int(input("Enter the number of the board: "))
         board = boards[choice]
-        board.flash_firmware(mini_driver, firmware, chip_erase)
+        board.flash_firmware(minidriver=mini_driver,
+                             firmware=firmware, fw_cfg=fw_cfg, chip_erase=chip_erase)
