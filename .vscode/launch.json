@@ -27,6 +27,7 @@
             "description": "Select board",
             "options": [
                 "if820",
+                "if91x"
             ],
             "default": "if820"
         },

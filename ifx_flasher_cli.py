@@ -15,9 +15,10 @@ import textwrap
 import os
 import sys
 sys.path.append('./common_lib/libraries')
-from ifx_board import IfxBoard
-from HciProgrammer import HciProgrammer
+from ifx_firmware_cfg import ifx_firmware_cfg
 from If820Board import IF820_FW_CFG
+from HciProgrammer import HciProgrammer
+from ifx_board import IfxBoard
 
 LOG_MODULE_HCI_PORT = 'hci_port'
 VERSION = '1.0.0'
@@ -34,6 +35,16 @@ SUPPORTED_BOARDS = {
     'if820': {
         'minidriver': resource_path(f'files{os.sep}if820{os.sep}minidriver-20820A1-uart-patchram.hex'),
         'fw_cfg': IF820_FW_CFG
+    },
+    'if91x': {
+        'minidriver': resource_path(f'files{os.sep}if91x{os.sep}minidriver.hex'),
+        'fw_cfg': ifx_firmware_cfg(
+            minidriver_load_addr=0x00300400,
+            launch_firmware_addr=0x0,
+            hci_default_baudrate=115200,
+            hci_flash_baudrate=3000000,
+            load_addr_delay=0.5,
+            chip_erase_delay=5.0)
     }
 }
 
@@ -60,6 +71,8 @@ if __name__ == '__main__':
                         help="application hex file to flash")
     parser.add_argument('-v', '--version', action='store_true',
                         help="Print the version of the tool and exit.")
+    parser.add_argument('-vf', '--verify', action='store_true',
+                        help="Verify firmware while flashing with CRC checks. Not all devices support this.")
 
     logging.basicConfig(
         format='%(asctime)s | %(levelname)s | %(message)s', level=logging.INFO)
@@ -85,6 +98,7 @@ if __name__ == '__main__':
     com_port = args.connection
     firmware = args.file
     chip_erase = args.chip_erase
+    verify = args.verify
 
     # If the user specifies a COM port, flash firmware in manual mode
     if com_port:
@@ -94,7 +108,10 @@ if __name__ == '__main__':
         if args.debug:
             logging.getLogger(LOG_MODULE_HCI_PORT).setLevel(logging.DEBUG)
         p.program_firmware(
-            fw_cfg.hci_flash_baudrate, firmware, chip_erase)
+            baud_rate=fw_cfg.hci_flash_baudrate,
+            file_path=firmware,
+            chip_erase_enable=chip_erase,
+            verify=verify)
     else:
         boards = IfxBoard.get_connected_boards()
         if len(boards) == 0:
@@ -109,4 +126,7 @@ if __name__ == '__main__':
             choice = int(input("Enter the number of the board: "))
         board = boards[choice]
         board.flash_firmware(minidriver=mini_driver,
-                             firmware=firmware, fw_cfg=fw_cfg, chip_erase=chip_erase)
+                             firmware=firmware,
+                             fw_cfg=fw_cfg,
+                             chip_erase=chip_erase,
+                             verify=verify)
