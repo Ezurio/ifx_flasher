@@ -40,6 +40,17 @@ SUPPORTED_BOARDS = {
             hci_flash_baudrate=3000000,
             load_addr_delay=0.5,
             chip_erase_delay=5.0)
+    },
+    'if310': {
+        # TODO: Update minidriver for IF310. This is a placeholder and doesn't work yet.
+        'minidriver': resource_path(f'files{os.sep}if310{os.sep}minidriver.hex'),
+        'fw_cfg': ifx_firmware_cfg(
+            minidriver_load_addr=0x00300400,
+            launch_firmware_addr=0x0,
+            hci_default_baudrate=115200,
+            hci_flash_baudrate=3000000,
+            load_addr_delay=0.5,
+            chip_erase_delay=5.0)
     }
 }
 
@@ -94,6 +105,17 @@ if __name__ == '__main__':
     firmware = args.file
     chip_erase = args.chip_erase
     verify = args.verify
+
+    # TODO: IF310 does not support chip erase. Remove this check when chip erase is supported.
+    if board == 'if310' and chip_erase:
+        logging.warning("Chip erase is not supported on IF310 and will be ignored.")
+        chip_erase = False
+
+    # TODO: only hcd files are supported for IF310. Remove this check when hex files are supported.
+    if board == 'if310' and firmware:
+        if not firmware.lower().endswith('.hcd'):
+            logging.error("Only .hcd firmware files are supported for IF310.")
+            sys.exit(1)
 
     # If the user specifies a COM port, flash firmware in manual mode
     if com_port:

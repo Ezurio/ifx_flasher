@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('files/if820/minidriver-20820A1-uart-patchram.hex', 'files/if820/'), ('files/if91x/minidriver.hex', 'files/if91x/')]
+datas = [('files/if820/minidriver-20820A1-uart-patchram.hex', 'files/if820/'), ('files/if91x/minidriver.hex', 'files/if91x/'), ('files/if310/minidriver.hex', 'files/if310/')]
 binaries = []
 hiddenimports = []
 tmp_ret = collect_all('pyocd')
