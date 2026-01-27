@@ -108,14 +108,9 @@ if __name__ == '__main__':
 
     # TODO: IF310 does not support chip erase. Remove this check when chip erase is supported.
     if board == 'if310' and chip_erase:
-        logging.warning("Chip erase is not supported on IF310 and will be ignored.")
+        logging.warning(
+            "Chip erase is not supported on IF310 and will be ignored.")
         chip_erase = False
-
-    # TODO: only hcd files are supported for IF310. Remove this check when hex files are supported.
-    if board == 'if310' and firmware:
-        if not firmware.lower().endswith('.hcd'):
-            logging.error("Only .hcd firmware files are supported for IF310.")
-            sys.exit(1)
 
     # If the user specifies a COM port, flash firmware in manual mode
     if com_port:
