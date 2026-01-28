@@ -32,7 +32,7 @@ jobs:
 
       - name: Build installer
         run: |
-          python -m PyInstaller --clean --console --noconfirm --onefile --add-data "files/if820/minidriver-20820A1-uart-patchram.hex;files/if820/" --add-data "files/if91x/minidriver.hex;files/if91x/" --collect-all pyocd --collect-all cmsis_pack_manager -p common_lib/libraries ifx_flasher_cli.py
+          python -m PyInstaller --clean --console --noconfirm --onefile --add-data "files/if820/minidriver-20820A1-uart-patchram.hex;files/if820/" --add-data "files/if91x/minidriver.hex;files/if91x/" --add-data "files/if310/minidriver.hex;files/if310/" --collect-all pyocd --collect-all cmsis_pack_manager -p common_lib/libraries ifx_flasher_cli.py
 
       - name: Get version
         id: get_version
