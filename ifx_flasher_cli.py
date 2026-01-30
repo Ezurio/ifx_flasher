@@ -10,12 +10,12 @@ import textwrap
 import os
 import sys
 sys.path.append('./common_lib/libraries')
-from ifx_firmware_cfg import ifx_firmware_cfg
-from If820Board import IF820_FW_CFG
 from HciProgrammer import HciProgrammer
+from HciSerialPort import HciSerialPort
+from If820Board import IF820_FW_CFG
 from ifx_board import IfxBoard
+from ifx_firmware_cfg import ifx_firmware_cfg
 
-LOG_MODULE_HCI_PORT = 'hci_port'
 VERSION = '1.0.0'
 
 
@@ -56,25 +56,33 @@ SUPPORTED_BOARDS = {
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(prog='ifx_flasher_cli',
+    parser = argparse.ArgumentParser(prog=f'ifx_flasher_cli',
                                      formatter_class=argparse.RawDescriptionHelpFormatter,
-                                     description=textwrap.dedent('''\
+                                     description=textwrap.dedent(f'''\
+        v{VERSION}
         CLI tool to flash an ifx board (or compatible boards) with new firmware.
         If no COM port is specified, the tool will automatically detect the board and flash it.
         If there is more than one board detected, the user will be prompted to select the board to flash.
         The CLI supports chip erase, firmware update, and flashing firmware with chip erase.
                                         '''))
+
+    parser.add_argument('-a', '--address', action='store_true',
+                        help="Read Bluetooth address from the device and exit.")
     parser.add_argument('-b', '--board',
                         type=str, default=str(),
-                        help=f"Board type to flash. Supported boards: {', '.join(SUPPORTED_BOARDS)}")
+                        help=f"Board type to flash. This option is required to flash firmware. Supported boards: {', '.join(SUPPORTED_BOARDS)}")
     parser.add_argument('-c', '--connection',
                         type=str, default=str(), help="HCI COM port")
     parser.add_argument('-ce', '--chip_erase', action='store_true',
-                        help="perform full chip erase.")
+                        help="Perform full chip erase. Can be combined with firmware flashing.")
     parser.add_argument('-d', '--debug', action='store_true',
-                        help="Enable verbose debug messages")
+                        help="Enable verbose debug messages.")
     parser.add_argument('-f', '--file',
-                        help="application hex file to flash")
+                        help="Device firmware file to flash.")
+    parser.add_argument('-lv', '--local_version', action='store_true',
+                        help="Read local version information and exit.")
+    parser.add_argument('-r', '--reset', action='store_true',
+                        help="Send HCI Reset and exit.")
     parser.add_argument('-v', '--version', action='store_true',
                         help="Print the version of the tool and exit.")
     parser.add_argument('-vf', '--verify', action='store_true',
@@ -91,40 +99,13 @@ if __name__ == '__main__':
         print(f"{VERSION}")
         sys.exit(0)
 
-    print(f"IFX Flasher CLI v{VERSION}")
-
-    board = args.board.casefold()
-    if board not in SUPPORTED_BOARDS:
-        logging.error(
-            f"Unsupported board type '{board}'. Supported boards: {', '.join(SUPPORTED_BOARDS.keys())}")
-        sys.exit(1)
-
-    mini_driver = SUPPORTED_BOARDS[board]['minidriver']
-    fw_cfg = SUPPORTED_BOARDS[board]['fw_cfg']
     com_port = args.connection
     firmware = args.file
     chip_erase = args.chip_erase
     verify = args.verify
 
-    # TODO: IF310 does not support chip erase. Remove this check when chip erase is supported.
-    if board == 'if310' and chip_erase:
-        logging.warning(
-            "Chip erase is not supported on IF310 and will be ignored.")
-        chip_erase = False
-
-    # If the user specifies a COM port, flash firmware in manual mode
-    if com_port:
-        input("Ensure the board is in HCI download mode and press enter to continue...")
-        p = HciProgrammer(mini_driver, com_port,
-                          HciProgrammer.HCI_DEFAULT_BAUDRATE, chip_erase, fw_cfg)
-        if args.debug:
-            logging.getLogger(LOG_MODULE_HCI_PORT).setLevel(logging.DEBUG)
-        p.program_firmware(
-            baud_rate=fw_cfg.hci_flash_baudrate,
-            file_path=firmware,
-            chip_erase_enable=chip_erase,
-            verify=verify)
-    else:
+    # Get the board instance
+    if not com_port:
         boards = IfxBoard.get_connected_boards()
         if len(boards) == 0:
             logging.error("No boards found")
@@ -133,10 +114,78 @@ if __name__ == '__main__':
         choice = 0
         if len(boards) > 1:
             print("Which board do you want to flash?")
-            for i, board in enumerate(boards):
-                print(f"{i}: {board.probe.id}")
+            for i, detected_board in enumerate(boards):
+                print(f"{i}: {detected_board.probe.id}")
             choice = int(input("Enter the number of the board: "))
         board = boards[choice]
+    else:
+        board = HciSerialPort()
+
+    # Query Bluetooth address and exit
+    if args.address:
+        if com_port:
+            board.open(com_port, HciProgrammer.HCI_DEFAULT_BAUDRATE)
+            address = board.read_bd_addr()
+            board.close()
+        else:
+            address = board.read_bluetooth_address()
+
+        logging.info(f"Bluetooth Address: {address}")
+        sys.exit(0)
+
+    # Issue HCI reset and exit
+    if args.reset:
+        if com_port:
+            board.open(com_port, HciProgrammer.HCI_DEFAULT_BAUDRATE)
+            board.send_hci_reset()
+            board.close()
+        else:
+            board.hci_reset()
+
+        logging.info("HCI Reset sent successfully")
+        sys.exit(0)
+
+    # Query local version information and exit
+    if args.local_version:
+        if com_port:
+            board.open(com_port, HciProgrammer.HCI_DEFAULT_BAUDRATE)
+            version_info = board.read_local_version_information()
+            board.close()
+        else:
+            version_info = board.read_local_version_info()
+
+        logging.info("Local Version Information:")
+        for k, v in version_info.items():
+            logging.info(f"  {k}: {hex(v) if isinstance(v, int) else v}")
+        sys.exit(0)
+
+    # Check board type before firmware programming
+    board_type = args.board.casefold()
+    if board_type not in SUPPORTED_BOARDS:
+        logging.error(
+            f"Unsupported board type '{board_type}'. Supported boards: {', '.join(SUPPORTED_BOARDS.keys())}")
+        sys.exit(1)
+
+    # TODO: IF310 does not support chip erase. Remove this check when chip erase is supported.
+    if board_type == 'if310' and chip_erase:
+        logging.warning(
+            "Chip erase is not supported on IF310 and will be ignored.")
+        chip_erase = False
+
+    mini_driver = SUPPORTED_BOARDS[board_type]['minidriver']
+    fw_cfg = SUPPORTED_BOARDS[board_type]['fw_cfg']
+
+    # If the user specifies a COM port, flash firmware in manual mode
+    if com_port:
+        input("Ensure the board is in HCI download mode and press enter to continue...")
+        p = HciProgrammer(mini_driver, com_port,
+                          HciProgrammer.HCI_DEFAULT_BAUDRATE, chip_erase, fw_cfg)
+        p.program_firmware(
+            baud_rate=fw_cfg.hci_flash_baudrate,
+            file_path=firmware,
+            chip_erase_enable=chip_erase,
+            verify=verify)
+    else:
         board.flash_firmware(minidriver=mini_driver,
                              firmware=firmware,
                              fw_cfg=fw_cfg,
