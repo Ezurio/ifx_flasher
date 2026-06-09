@@ -50,7 +50,7 @@ SUPPORTED_BOARDS = {
             hci_default_baudrate=115200,
             hci_flash_baudrate=3000000,
             load_addr_delay=0.5,
-            chip_erase_delay=5.0)
+            chip_erase_delay=120.0)
     }
 }
 
@@ -165,12 +165,6 @@ if __name__ == '__main__':
         logging.error(
             f"Unsupported board type '{board_type}'. Supported boards: {', '.join(SUPPORTED_BOARDS.keys())}")
         sys.exit(1)
-
-    # TODO: IF310 does not support chip erase. Remove this check when chip erase is supported.
-    if board_type == 'if310' and chip_erase:
-        logging.warning(
-            "Chip erase is not supported on IF310 and will be ignored.")
-        chip_erase = False
 
     mini_driver = SUPPORTED_BOARDS[board_type]['minidriver']
     fw_cfg = SUPPORTED_BOARDS[board_type]['fw_cfg']

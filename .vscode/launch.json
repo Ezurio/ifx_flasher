@@ -17,7 +17,8 @@
                 "-ce",
                 "-f",
                 "${input:firmware}"
-            ]
+            ],
+            "justMyCode": false
         }
     ],
     "inputs": [
@@ -27,7 +28,8 @@
             "description": "Select board",
             "options": [
                 "if820",
-                "if91x"
+                "if91x",
+                "if310",
             ],
             "default": "if820"
         },
