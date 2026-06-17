@@ -16,7 +16,7 @@ from If820Board import IF820_FW_CFG
 from ifx_board import IfxBoard
 from ifx_firmware_cfg import ifx_firmware_cfg
 
-VERSION = '1.0.0'
+VERSION = '1.1.0'
 
 
 def resource_path(relative_path):
