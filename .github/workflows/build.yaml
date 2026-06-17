@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           token: ${{secrets.RFPROS_TOKEN}}
           submodules: recursive
@@ -31,8 +31,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Build installer
-        run: |
-          python -m PyInstaller --clean --console --noconfirm --onefile --add-data "files/if820/minidriver-20820A1-uart-patchram.hex;files/if820/" --add-data "files/if91x/minidriver.hex;files/if91x/" --add-data "files/if310/minidriver.hex;files/if310/" --collect-all pyocd --collect-all cmsis_pack_manager -p common_lib/libraries ifx_flasher_cli.py
+        run: python -m PyInstaller --clean --noconfirm ifx_flasher_cli.spec
 
       - name: Get version
         id: get_version
@@ -41,7 +40,7 @@ jobs:
             echo "VERSION=$version" >> $env:GITHUB_OUTPUT
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: ifx_flasher_cli-${{ runner.os }}-v${{ steps.get_version.outputs.VERSION }}
           path: dist/ifx_flasher_cli*
