@@ -65,8 +65,8 @@ You may need to log out and back in for group changes to take effect.
 
 There are two versions of the IF310 HCI firmware available:
 
-- The HCD file is loaded to RAM and must be reloaded on each boot: [CYW55500A1_001.002.032.0233.0117.hcd](files/if310/firmware/CYW55500A1_001.002.032.0233.0117.hcd)
-- The HEX file is loaded into external flash and persists across reboots: [CYW55500A1_001.002.032.0233.0117.hex](files/if310/firmware/CYW55500A1_001.002.032.0233.0117.hex). An external flash must be connected to the IF310 module for this to work. The IF310 DVK includes an external flash to store the firmware.
+- The HCD file is loaded to RAM and must be reloaded on each boot: [CYW55500A1_001.002.032.0211.0125.hcd](files/if310/firmware/CYW55500A1_001.002.032.0211.0125.hcd)
+- The HEX file is loaded into external flash and persists across reboots: [CYW55500A1_001.002.032.0211.0125.hex](files/if310/firmware/CYW55500A1_001.002.032.0211.0125.hex). An external flash must be connected to the IF310 module for this to work. The IF310 DVK includes an external flash to store the firmware.
 
 ### Flash the Firmware
 
