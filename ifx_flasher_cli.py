@@ -71,6 +71,8 @@ if __name__ == '__main__':
     parser.add_argument('-b', '--board',
                         type=str, default=str(),
                         help=f"Board type to flash. This option is required to flash firmware. Supported boards: {', '.join(SUPPORTED_BOARDS)}")
+    parser.add_argument('-br', '--baud_rate',
+                        type=int, default=115200, help="Baud rate used for individual HCI commands. Default is 115200. This is not used for flashing firmware.")
     parser.add_argument('-c', '--connection',
                         type=str, default=str(), help="HCI COM port")
     parser.add_argument('-ce', '--chip_erase', action='store_true',
@@ -81,6 +83,8 @@ if __name__ == '__main__':
                         help="Device firmware file to flash.")
     parser.add_argument('-lv', '--local_version', action='store_true',
                         help="Read local version information and exit.")
+    parser.add_argument('-m', '--minidriver', action='store_true',
+                        help="Force loading the minidriver. Only use this if you know what you're doing.")
     parser.add_argument('-r', '--reset', action='store_true',
                         help="Send HCI Reset and exit.")
     parser.add_argument('-v', '--version', action='store_true',
@@ -103,6 +107,8 @@ if __name__ == '__main__':
     firmware = args.file
     chip_erase = args.chip_erase
     verify = args.verify
+    force_minidriver = args.minidriver
+    cmd_baud_rate = args.baud_rate
 
     # Get the board instance
     if not com_port:
@@ -124,11 +130,11 @@ if __name__ == '__main__':
     # Query Bluetooth address and exit
     if args.address:
         if com_port:
-            board.open(com_port, HciProgrammer.HCI_DEFAULT_BAUDRATE)
+            board.open(com_port, cmd_baud_rate)
             address = board.read_bd_addr()
             board.close()
         else:
-            address = board.read_bluetooth_address()
+            address = board.read_bluetooth_address(cmd_baud_rate)
 
         logging.info(f"Bluetooth Address: {address}")
         sys.exit(0)
@@ -136,11 +142,11 @@ if __name__ == '__main__':
     # Issue HCI reset and exit
     if args.reset:
         if com_port:
-            board.open(com_port, HciProgrammer.HCI_DEFAULT_BAUDRATE)
+            board.open(com_port, cmd_baud_rate)
             board.send_hci_reset()
             board.close()
         else:
-            board.hci_reset()
+            board.hci_reset(cmd_baud_rate)
 
         logging.info("HCI Reset sent successfully")
         sys.exit(0)
@@ -148,11 +154,11 @@ if __name__ == '__main__':
     # Query local version information and exit
     if args.local_version:
         if com_port:
-            board.open(com_port, HciProgrammer.HCI_DEFAULT_BAUDRATE)
+            board.open(com_port, cmd_baud_rate)
             version_info = board.read_local_version_information()
             board.close()
         else:
-            version_info = board.read_local_version_info()
+            version_info = board.read_local_version_info(cmd_baud_rate)
 
         logging.info("Local Version Information:")
         for k, v in version_info.items():
@@ -178,10 +184,12 @@ if __name__ == '__main__':
             baud_rate=fw_cfg.hci_flash_baudrate,
             file_path=firmware,
             chip_erase_enable=chip_erase,
-            verify=verify)
+            verify=verify,
+            force_minidriver=force_minidriver)
     else:
         board.flash_firmware(minidriver=mini_driver,
                              firmware=firmware,
                              fw_cfg=fw_cfg,
                              chip_erase=chip_erase,
-                             verify=verify)
+                             verify=verify,
+                             force_minidriver=force_minidriver)
